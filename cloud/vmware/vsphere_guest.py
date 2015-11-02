@@ -141,6 +141,11 @@ options:
       - Boolean. Allows you to run commands which may alter the running state of a guest. Also used to reconfigure and destroy.
     default: "no"
     choices: [ "yes", "no" ]
+  https_disable_cert_verification:
+    description:
+      - Specifies if the ssl-certificate-check should be disabled while connecting to the API.
+    required: false
+    default: false
 
 notes:
   - This module should run from a system that can access vSphere directly.
@@ -1332,6 +1337,7 @@ def main():
             cluster=dict(required=False, default=None, type='str'),
             force=dict(required=False, type='bool', default=False),
             esxi=dict(required=False, type='dict', default={}),
+            https_disable_cert_verification=dict(required=False, type='bool', default=False),
             power_on_after_clone=dict(required=False, type='bool', default=True)
 
 
@@ -1373,7 +1379,17 @@ def main():
     from_template = module.params['from_template']
     snapshot_to_clone = module.params['snapshot_to_clone']
     power_on_after_clone = module.params['power_on_after_clone']
+    https_disable_cert_verification = module.params['https_disable_cert_verification']
 
+    if https_disable_cert_verification:
+        try:
+            import ssl
+            ssl._create_default_https_context = ssl._create_unverified_context
+        except ImportError:
+            pass
+        except AttributeError:
+            # Legacy Python that doesn't verify HTTPS certificates by default
+            pass
 
     # CONNECT TO THE SERVER
     viserver = VIServer()
